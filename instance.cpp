@@ -7,14 +7,6 @@
 
 using namespace std;
 
-void debug( vector<unsigned> x, double _cost )
-{
-  for( unsigned i = 0; i < x.size(); cout << ", ", i++ )
-    cout << x.at(i);
-  cout << endl;
-  cout << "cost\t" << _cost << endl;
-}
-
 Instance::Instance ( const string &filename, bool flag_f, double f,
                                               bool flag_u, double u )
 {
