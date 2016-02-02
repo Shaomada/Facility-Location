@@ -7,7 +7,13 @@
 
 using namespace std;
 
-// general Partiton stuff not specific to the problem
+void debug( vector<unsigned> x, double _cost )
+{
+  for( unsigned i = 0; i < x.size(); cout << ", ", i++ )
+    cout << x.at(i);
+  cout << endl;
+  cout << "cost\t" << _cost << endl;
+}
 
 Instance::Instance ( const string &filename, bool flag_f, double f,
                                               bool flag_u, double u )
@@ -18,29 +24,30 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
     _f = f;
   else
     _f = 0; // TODO
-  
+
   if( flag_u )
     _u = u;
   else
     _u = U_DEFAULT;
 
-  create_singilton_subsets();
-  update_facilities();
+  _cost = 0;
+  _best_cost = std::numeric_limits<double>::infinity();
+
+  first_partition();
 }
 
 void Instance::loadFromTSPLIB( const string &filename )
 {
   _D = vector<Point>();
   _x = assignment();
-  _v = subsets();
-  
+
   std::ifstream in ( "testfile" );
   string line, word;
   unsigned i;
   double x, y;
   bool node_coord_section = false;
-  
-  CHECK( in, "Cannot open file." );
+
+  CHECK( in );
   while( getline( in, line ) )
   {
     if( node_coord_section )
@@ -58,8 +65,8 @@ void Instance::loadFromTSPLIB( const string &filename )
       ss >> i >> x >> y;
       _D.push_back( Point( x, y ) );
 
-      CHECK( ss, "invalid file format" );
-      CHECK( i == _D.size(), "invalid file format" );
+      CHECK( ss );
+      CHECK( i == _D.size() );
     }
     else
     {
@@ -68,163 +75,192 @@ void Instance::loadFromTSPLIB( const string &filename )
       if( word == "NODE_COORD_SECTION" )
       {
         node_coord_section = true;
-        CHECK( ss, "invalid file format" );
+        CHECK( ss );
       }
     }
   }
 
-  CHECK( false, "invalid file format" );
+  // shouldn't be here as last line should read EOF
+  CHECK( false );
+}
+
+void Instance::solve()
+{
+  while( not finished() )
+  {
+    if( _cost < _best_cost )
+      save();
+    next_partition();
+  }
+  load();
+  print();
 }
 
 void Instance::next_partition()
-/* backtrack untill we can place an element in a lower index subset
- * then fill all elements in maximum index subsest possible,
- * ie. call create_singilton_subsets. If we find no such possible placement,
- * we are allready at the last partition and call create_singilton_subsets
- * to create the first partition instead.
- * Note we will place an Element in a lower index Subset if we find one
- * regardless of capacity, but if it was not legal, we dont break, so the
- * very next run of the loop will begin with unplacing that element and
- * looking for even smaller index subsets to place it in.
+/* Picture all partitions of sets {1, ..., m} with m <= |D| as an aborescens
+ * with an order onoutgoing edges at every vertex. Basic idea is to back-
+ * track untill there is a higher order outgoing edge where we are, then
+ * allways take the lowest order edge possible.
+ * To also consider things like capacities, we check legality and might need
+ * to do additional steps backwards.
+ * Iff we find no partition this way, we allready iterated over all
+ * paritions and the while loop stops with _x.size() == 0.
  */
 {
-  while( _x.size() > 0 )
-  {
-    unsigned former_index = unplace();
-    if( former_index > 0 )
-      if( place( former_index-1 ) )
-        break;
+  backward();
+  if( _x.size() == 0 )
+    return ;
+
+  while( _x.size() < _D.size() )
+  {;
+    forward();
+    while( !legal() )
+      backward();
+    if( _x.size() == 0 )
+      return ;
   }
-  create_singilton_subsets();
-  update_facilities();
 }
 
-bool Instance::is_last_partition() const
-// the last partition is the one in which we have |D| singilton subsets
+void Instance::first_partition()
+// does exactly the same as next_bartition apart from the initial step back
 {
-  return _v.size() == _D.size();
+  while( _x.size() < _D.size() )
+  {
+    forward();
+    while( !legal() )
+      backward();
+    if( _x.size() == 0 )
+      return ;
+  }
 }
 
-bool Instance::place( unsigned i )
-/* places the lowest index unplaced element,
- * ie. i_x.size(), in the i-th subset
- * and returns true iff it was legal with respect to capacity
- * (but does not undo the placement if it was unlegal!)
- */
-{ 
-  if( i < _v.size() )
+bool Instance::finished() const
+// See expanation of next_partion for context
+{
+  return _x.size() == 0;
+}
+
+bool Instance::legal() const
+// TODO
+{
+  if( _x.size() == 0 )
   {
-    _v.at( i ).push_back( _x.size() );
-    _x.push_back( i );
+    return true;
+  }
+  else if( not _I.at( _x.back() ).satisfies_capacity( _u ) )
+  {
+    return false;
+  }
+  else if ( _cost >= _best_cost && true ) // HERE
+  {
+    return false;
   }
   else
   {
-    CHECK( i == _v.size(), "index too large" );
-    _v.push_back( subset( 1, _x.size() ) );
-    _x.push_back( i );
+    return true;
   }
-  
-  return _v.at( i ).size() <= _u;
+}
+
+void Instance::forward()
+{
+  place( 0 );
+}
+
+void Instance::backward()
+{
+  unsigned i;
+  do
+    i = unplace();
+  while( _x.size() > 0 && i >= _I.size() );
+  if( i < _I.size() )
+    place( i+1 );
+}
+
+void Instance::place( unsigned i )
+/* If we have a partial Assignment from {0, ..., m-1} to {0, ..., k-1}
+ * this function takes an index 0 <= i <= k and creates a partial Assignment
+ * {0, ..., m} by mapping m to i.
+ * We also update the optimal faciltiy placement and cost for the assignment.
+ */
+{
+  // check if the parameter was valid
+  CHECK( i <= _I.size() );
+
+  // for more readability
+  int m = _x.size();
+
+  // update assignment
+  _x.push_back( i );
+
+  // update _I and _cost
+  if( i < _I.size() )
+  {
+    _cost += ( _I.at( i ) += _D.at( m ) );
+  }
+  else
+  {
+    _I.push_back( Point( _D.at( m ) ) );
+    _cost += _f;
+  }
 }
 
 unsigned Instance::unplace()
-// unplaces the highest index Element, returns index of set it used to be in
+/* If we have a partial assignment of {0, ..., m} to {0, .. k}, we create
+ * a partial assignment of {0, ..., m-1} by unplacing m.
+ * Note that by convention the sets are ordered by smallest element ascending,
+ * so if we need to delete any set, it should be _v[k]
+ * We also update the facility placement and cost for the assignment.
+ */
 {
-  // unplace from _x
-  CHECK( _x.size() > 0, "nothing to unplace" );
+  // Check if we can uplace something
+  CHECK( _x.size() > 0 );
+  
+  // for more readability
+  unsigned m = _x.size() - 1;
   unsigned i = _x.back();
-  _x.pop_back();
 
-  // unplace from _v
-  CHECK( _v.at( i ).size() > 0 && _v.at( i ).back() == _x.size(), "data invalid" );
-  _v.at( i ).pop_back();
+  // Update assignment
+  _x.pop_back();
   
-  // remove the subset if empty
-  if( _v.at( i ).size() == 0 )
+  // update 
+  _I.at( i );
+  _D.at( m );
+  if( _I.at( i ) == _D.at( m ) )
   {
-    _v.pop_back();
-    CHECK( _v.size() == i, "data invalid" );
+    CHECK( i+1 == _I.size() );
+    _I.pop_back();
+    _cost -= _f;
   }
-  
+  else
+  {
+    _cost -= ( _I.at( i ) -= _D.at( m ) );
+  }
+
   return i;
 }
 
-void Instance::create_singilton_subsets()
-// places each unplaced Element in a new singilton subset
-{
-  while( _x.size() < _D.size() )
-    place( _v.size() );
-}
-
-// specific to the Problem
-
-void Instance::update_facilities()
-{
-  _I = vector<Point>();
-  for( const subset &s : _v )
-    _I.push_back( barycenter( s, _D ) );
-}
-
-double Instance::cost() const
-{
-  double cost = _I.size() * _f;
-  for( unsigned i = 0; i < _D.size(); i++ )
-  {
-    cost += distance_sqr( _D.at( i ), _I.at( _x.at( i ) ) );
-  }
-  return cost;
-}
-
-
 void Instance::print() const
+// prints a solution
 {
-  print_cost();
-  print_facilities();
-  print_assignment();
-}
-
-void Instance::print_cost() const
-{
-  cout << "OBJECTIVE " << cost() << endl;
-}
-
-void Instance::print_facilities() const
-{
+  cout << "OBJECTIVE " << _cost << endl;
   for( unsigned i = 0; i < _I.size(); i++ )
     cout << "FACILITY " << i+1 << " " << _I.at(i).show() << endl;
-}
-
-void Instance::print_assignment() const
-{
   for( unsigned i = 0; i < _x.size(); i++ )
     cout << "ASSIGN " << i+1 << " " << _x.at( i )+1 << endl;
 }
 
-
 void Instance::save()
-// overwrites _y with _x
+// writes best solution so far
 {
-  _y = _x;
+  _best_x = _x;
+  _best_I = _I;
+  _best_cost = _cost;
 }
 
 void Instance::load()
-// loads partition from _y
+// loads best solution found
 {
-  _x = _y;
-  _v = subsets();
-  
-  for( unsigned i = 0; i < _x.size(); i++ )
-  {
-    if( _x.at( i ) < _v.size() )
-    {
-      _v.at( _x.at( i ) ).push_back( i );
-    }
-    else
-    {
-      CHECK( _x.at( i ) == _v.size(), "out of range" );
-      _v.push_back( subset(1,i) );
-    }
-  }
-  
-  update_facilities();
+  _x = _best_x;
+  _I = _best_I;
+  _cost = _best_cost;
 }

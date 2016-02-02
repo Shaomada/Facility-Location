@@ -11,9 +11,8 @@ double max( double a, double b )
   return b > a ? b : a;
 }
 
-void check( bool is_true, string file, int line, string error )
+void check( bool is_true, string file, int line )
 {
   if( !is_true )
-    throw "ERROR in File " + file + " Line " + std::to_string( line ) +  ":\n"
-          + "\t" + error + "!";
+    throw "CHECK failed in File " + file + " Line " + std::to_string( line );
 }

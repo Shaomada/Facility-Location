@@ -1,94 +1,105 @@
 #include "point.hpp"
 
 Point::Point( double x, double y )
+// creates a point with weight 1
 {
   _x = x;
   _y = y;
+  _w = 1;
 }
 
-Point &Point::operator=( const Point &q )
+Point &Point::operator=( const Point &p )
+// copys a point
 {
-  _x = q._x;
-  _y = q._y;
+  _x = p._x;
+  _y = p._y;
+  _w = p._w;
   return *this;
 }
 
-void Point::operator+=( const Point &q )
+Point::Point( const Point &p )
+// copys a point
 {
-  _x += q._x;
-  _y += q._y;
+  _x = p._x;
+  _y = p._y;
+  _w = p._w;
 }
 
-void Point::operator-=( const Point &q )
+#include <iostream>
+using namespace std;
+
+double Point::operator+=( const Point &p )
+// takes the barycenter of 2 points, returns the cost
 {
-  _x -= q._x;
-  _y -= q._y;
+  Point q = *this;
+
+  _w = q._w + p._w;
+  _x = ( q._w*q._x + p._w*p._x ) / _w;
+  _y = ( q._w*q._y + p._w*p._y ) / _w;
+
+  return cost( p ) + cost( q );
 }
 
-void Point::operator*=( double d )
+double Point::operator-=( const Point &p )
+// the inverse to +=
 {
-  _x *= d;
-  _y *= d;
+  CHECK( p._w < _w );
+
+  Point q = *this;
+
+  _w = q._w - p._w;
+  _x = ( q._w*q._x - p._w*p._x ) / _w;
+  _y = ( q._w*q._y - p._w*p._y ) / _w;
+
+  return q.cost( p ) + q.cost( *this );
 }
 
-void Point::operator/=( double d )
+bool Point::operator==( const Point& p ) const
+// checks if the weights are equal
 {
-  _x /= d;
-  _y /= d;
+  return p._w == _w;
 }
-
-Point Point::operator+( const Point &q ) const
-{
-  Point p( _x, _y );
-  p._x += q._x;
-  p._y += q._y;
-  return p;
-}
-
-Point Point::operator-( const Point &q ) const
-{
-  Point p( _x, _y );
-  p._x -= q._x;
-  p._y -= q._y;
-  return p;
-}
-
-Point Point::operator*( double d ) const
-{
-  Point p( _x, _y );
-  p._x *= d;
-  p._y *= d;
-  return p;
-}
-
-Point Point::operator/( double d ) const
-{
-  Point p( _x, _y );
-  p._x /= d;
-  p._y /= d;
-  return p;
-}
-
-double Point::norm_sqr() const
-{
-  return _x*_x + _y*_y;
-}
-
 
 std::string Point::show() const
+// for showing the coordinates of a point
 {
   return "\t" + std::to_string( _x ) + "\t" + std::to_string( _y );
 }
 
-double distance_sqr( const Point &x, const Point &y )
+bool Point::satisfies_capacity( unsigned u ) const
 {
-  return ( x-y ).norm_sqr();
+  return _w <= u;
 }
 
-Point barycenter( const std::vector<unsigned> s, const std::vector<Point> &v )
+double Point::cost( const Point &p ) const
+// the cost for moving p to this point
 {
-  Point q( 0, 0 );
-  for( unsigned i : s )
-    q += v.at( i );
-  return q / (double) s.size();
+  return p._w * ( ( _x-p._x )*( _x-p._x) + ( _y-p._y )*( _y-p._y ) );
 }
+
+#if 0
+
+#include <iostream>
+
+using std::cout;
+using std::endl;
+
+int main ()
+{
+  Point x( 37, 5 );
+  Point y( 9, 18 );
+  Point z( 17, 24 );
+  cout << "x" << x.show() << endl;
+  cout << "y" << y.show() << endl;
+  cout << "z" << z.show() << endl;
+  cout << "x+=y\t" << ( x += y ) << endl;
+  cout << "x-=z\t" << ( x -= z ) << endl;
+  cout << "x-=z\t" << ( x += z ) << endl;
+  cout << "x-=y\t" << ( x -= y ) << endl;
+  cout << "x" << x.show() << endl;
+  cout << "y" << y.show() << endl;
+  cout << "z" << z.show() << endl;
+  return 0;
+}
+
+#endif

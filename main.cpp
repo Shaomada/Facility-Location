@@ -5,25 +5,6 @@
 
 using namespace std;
 
-void optimize( Instance &p )
-{
-  CHECK( p.is_first_partition(), "invalid parameter" );
-
-  double mincost = std::numeric_limits<double>::infinity();
-  do
-  {
-    double cost = p.cost();
-    if( cost < mincost )
-    {
-      mincost = cost;
-      p.save();
-    }
-    p.next_partition();
-  } while( not p.is_first_partition() );
-  p.load();
-  p.print();
-}
-
 int main ( int argc, char **argv )
 {
   if( argc == 1 )
@@ -63,18 +44,11 @@ int main ( int argc, char **argv )
       }
     }
     
-    cout << "read:" << endl
-         << "\tfilename\t" << filename << endl
-         << "\tf\t" << f << endl
-         << "\tu\t" << u << endl
-         << "\tflag_f\t" << flag_f << endl
-         << "\tflag_u\t" << flag_u << endl;
-    
     // create an Instance
-    Instance p( filename, flag_f, f, flag_u, u );
+    Instance x( filename, flag_f, f, flag_u, u );
     
     // solve the problem
-    optimize( p );
+    x.solve();
   }
   catch( std::string exc ){
     std::cerr << "Exception caught: " << exc << std::endl;

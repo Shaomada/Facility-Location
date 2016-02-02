@@ -14,11 +14,11 @@ class Instance;
 double abs( double x );
 double max( double a, double b );
 
-void check( bool is_true, std::string file, int line, std::string error );
+void check( bool is_true, std::string file, int line );
 
 #if 1
 #define LOCATION __FILE__ , __LINE__
-#define CHECK( IS_TRUE, ERROR ) check( IS_TRUE, LOCATION, ERROR )
+#define CHECK( IS_TRUE ) check( IS_TRUE, LOCATION )
 
 #else
 #define CHECK( IS_TRUE, ERROR )
