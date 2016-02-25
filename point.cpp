@@ -67,6 +67,7 @@ std::string Point::show() const
 }
 
 bool Point::satisfies_capacity( unsigned u ) const
+// test if facility capacity is fullfilled
 {
   return _w <= u;
 }
@@ -76,30 +77,3 @@ double Point::cost( const Point &p ) const
 {
   return p._w * ( ( _x-p._x )*( _x-p._x) + ( _y-p._y )*( _y-p._y ) );
 }
-
-#if 0
-
-#include <iostream>
-
-using std::cout;
-using std::endl;
-
-int main ()
-{
-  Point x( 37, 5 );
-  Point y( 9, 18 );
-  Point z( 17, 24 );
-  cout << "x" << x.show() << endl;
-  cout << "y" << y.show() << endl;
-  cout << "z" << z.show() << endl;
-  cout << "x+=y\t" << ( x += y ) << endl;
-  cout << "x-=z\t" << ( x -= z ) << endl;
-  cout << "x-=z\t" << ( x += z ) << endl;
-  cout << "x-=y\t" << ( x -= y ) << endl;
-  cout << "x" << x.show() << endl;
-  cout << "y" << y.show() << endl;
-  cout << "z" << z.show() << endl;
-  return 0;
-}
-
-#endif

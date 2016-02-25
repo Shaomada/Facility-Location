@@ -11,6 +11,12 @@ typedef std::vector<unsigned> subset;
 typedef std::vector<subset> subsets;
 
 class Instance {
+/*
+ * an instance of the problem together with a (partial) assignment,
+ * optimal facility locations and cost for the assignment,
+ * as well as the best placement found so far
+ */
+
 public:  
   Instance ( const std::string &filename, bool flag_f, double f,
                                           bool flag_u, double u );

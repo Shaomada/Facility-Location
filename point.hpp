@@ -6,6 +6,8 @@
 
 class Point
 // a weighted point in the 2-dimension Plane
+// addition is taking the (weighted) barycenter
+// subtraction is the inverse
 {
 public:
   Point( double x, double y );

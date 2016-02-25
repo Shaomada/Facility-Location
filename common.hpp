@@ -16,6 +16,9 @@ double max( double a, double b );
 
 void check( bool is_true, std::string file, int line );
 
+/* debug macro
+ * call if the value IS_TRUE should be true
+ */
 #if 1
 #define LOCATION __FILE__ , __LINE__
 #define CHECK( IS_TRUE ) check( IS_TRUE, LOCATION )

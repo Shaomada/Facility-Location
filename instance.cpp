@@ -9,6 +9,10 @@ using namespace std;
 
 Instance::Instance ( const string &filename, bool flag_f, double f,
                                               bool flag_u, double u )
+/* creates an Instance from flags and filename
+ * TODO: default facility cost
+ */
+
 {
   loadFromTSPLIB( filename );
 
@@ -29,6 +33,7 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
 }
 
 void Instance::loadFromTSPLIB( const string &filename )
+// loads the points from file
 {
   _D = vector<Point>();
   _x = assignment();
@@ -77,6 +82,7 @@ void Instance::loadFromTSPLIB( const string &filename )
 }
 
 void Instance::solve()
+// finds the optimal solution for this Instance
 {
   while( not finished() )
   {
@@ -154,11 +160,15 @@ bool Instance::legal() const
 }
 
 void Instance::forward()
+// tries to make the partial assignment greater by appending a 0
 {
   place( 0 );
 }
 
 void Instance::backward()
+/* backtracks to the point where we could have chosen to assign a
+ * point to a different facility and does so
+ */
 {
   unsigned i;
   do
