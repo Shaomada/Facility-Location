@@ -72,6 +72,12 @@ bool Point::satisfies_capacity( unsigned u ) const
   return _w <= u;
 }
 
+double Point::dist( const Point &p ) const
+// the distance of p from this
+{
+  return ( _x-p._x )*( _x-p._x) + ( _y-p._y )*( _y-p._y );
+}
+
 double Point::cost( const Point &p ) const
 // the cost for moving p to this point
 {

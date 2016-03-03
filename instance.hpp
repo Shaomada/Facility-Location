@@ -58,6 +58,9 @@ private:
   void save();
   void load();
   void print() const;
+
+  // for default faciltity costs
+  double max_dist();
 };
 
 #endif

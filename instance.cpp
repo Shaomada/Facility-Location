@@ -9,17 +9,17 @@ using namespace std;
 
 Instance::Instance ( const string &filename, bool flag_f, double f,
                                               bool flag_u, double u )
-/* creates an Instance from flags and filename
- * TODO: default facility cost
- */
-
+// creates an Instance from flags and filename
 {
   loadFromTSPLIB( filename );
 
   if( flag_f )
     _f = f;
   else
-    _f = 0; // TODO
+  {
+    _f = 2 * max_dist();
+    cout << "_f\t" << _f << endl;
+  }
 
   if( flag_u )
     _u = u;
@@ -265,4 +265,22 @@ void Instance::load()
   _x = _best_x;
   _I = _best_I;
   _cost = _best_cost;
+}
+
+double Instance::max_dist()
+/* returns the maximum over all pairs of customers
+ * of the squared euclidean distance
+ */
+{
+  double maximum = 0;
+  for( unsigned i = 0; i < _D.size(); i++ )
+  {
+    for( unsigned j = 0; j < _D.size(); j++ )
+    {
+      double distance = _D.at( i ).dist( _D.at( j ) );
+      if( distance > maximum )
+        maximum = distance;
+    }
+  }
+  return maximum;
 }

@@ -20,11 +20,13 @@ public:
 
   std::string show() const;
   bool satisfies_capacity( unsigned u ) const;
+
+  double dist( const Point& p ) const;
 private:
   double _x;
   double _y;
   unsigned _w;
-
+  
   double cost( const Point& p ) const;
 };
 
