@@ -35,6 +35,10 @@ private:
   std::vector<Point> _I;
   double _cost;
   
+  // memory for backtracking
+  std::vector<double> _mem_cost;
+  std::vector<Point> _mem_I;
+
   // for the best assignment found so far
   assignment _best_x;
   std::vector<Point> _best_I;
@@ -43,11 +47,11 @@ private:
   // for loading from file
   void loadFromTSPLIB( const std::string &filename );
 
-  // for iterating over all assignments
-  void next_partition();
+  // for iterating over all assignments in solve
+  void next_assignment();
   bool finished() const;
 
-  // helpers for next_partition
+  // helpers for next_assignment
   bool legal() const;
   void forward();
   void backward();

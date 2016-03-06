@@ -20,7 +20,6 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
   else
   {
     _f = 2 * max_dist();
-    cout << "_f\t" << _f << endl;
   }
 
   // set _u
@@ -33,7 +32,7 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
   _best_cost = std::numeric_limits<double>::infinity();
 
   // intial assignment
-  next_partition();
+  next_assignment();
 }
 
 void Instance::loadFromTSPLIB( const string &filename )
@@ -93,13 +92,13 @@ void Instance::solve()
   {
     if( _cost < _best_cost )
       save();
-    next_partition();
+    next_assignment();
   }
   load();
   print();
 }
 
-void Instance::next_partition()
+void Instance::next_assignment()
 /* finds the next full assignments, where assignments are ordered
  * lexicographically or the empty assignment if there is no next
  * full assignment
@@ -130,7 +129,7 @@ void Instance::next_partition()
 }
 
 bool Instance::finished() const
-// See expanation of next_partion for context
+// To check if next_assignment allready ran through all assignments
 {
   return _x.size() == 0;
 }
@@ -195,46 +194,55 @@ void Instance::place( unsigned i )
   // for more readability
   int m = _x.size();
 
-  // update assignment
+  // update _x
   _x.push_back( i );
 
-  // update _I and _cost
-  if( i < _I.size() )
+  // memory 1
+  _mem_cost.push_back( _cost );
+
+  if( i == _I.size() )
+  // special case: opening new facility
   {
-    _cost += ( _I.at( i ) += _D.at( m ) );
-  }
-  else
-  {
-    _I.push_back( Point( _D.at( m ) ) );
+    _I.push_back( Point() );
     _cost += _f;
   }
+  else
+  // otherwise: memory 2
+  {
+    _mem_I.push_back( _I.at( i ) );
+  }
+  
+  // update _I and _cost
+  _cost += ( _I.at( i ) += _D.at( m ) );
 }
 
 unsigned Instance::unplace()
 // the inverse map to place
 {
-  // Check if we can uplace something
+  // We can only unplace if something is placed
   CHECK( _x.size() > 0 );
   
   // for more readability
   unsigned m = _x.size() - 1;
   unsigned i = _x.back();
 
-  // Update assignment
+  // Update _x
   _x.pop_back();
   
-  // update 
-  _I.at( i );
-  _D.at( m );
+  // update _cost
+  _cost = _mem_cost.back();
+  _mem_cost.pop_back();
+  
+  // update _I
   if( _I.at( i ) == _D.at( m ) )
   {
     CHECK( i+1 == _I.size() );
     _I.pop_back();
-    _cost -= _f;
   }
   else
   {
-    _cost -= ( _I.at( i ) -= _D.at( m ) );
+    _I.at( i ) = _mem_I.back();
+    _mem_I.pop_back();
   }
 
   return i;
