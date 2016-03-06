@@ -10,12 +10,13 @@ typedef std::vector<unsigned> assignment;
 typedef std::vector<unsigned> subset;
 typedef std::vector<subset> subsets;
 
-class Instance {
+class Instance
 /*
- * an instance of the problem together with a (partial) assignment,
+ * an Instance of the problem together with a (partial) assignment,
  * optimal facility locations and cost for the assignment,
  * as well as the best placement found so far
  */
+{
 
 public:  
   Instance ( const std::string &filename, bool flag_f, double f,
@@ -24,17 +25,17 @@ public:
   void solve();
 
 private:
-  // the Input
+  // the actual Instance of the problem
   double _u;
   double _f;
   std::vector<Point> _D;
   
-  // a possible Solution
+  // for the (possibly partial) assignemnt we consider right now
   assignment _x;
   std::vector<Point> _I;
   double _cost;
   
-  // for recalling the opitmal solution
+  // for the best assignment found so far
   assignment _best_x;
   std::vector<Point> _best_I;
   double _best_cost;
@@ -42,8 +43,7 @@ private:
   // for loading from file
   void loadFromTSPLIB( const std::string &filename );
 
-  // for iterating over all partitions
-  void first_partition();
+  // for iterating over all assignments
   void next_partition();
   bool finished() const;
 

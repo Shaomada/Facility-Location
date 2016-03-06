@@ -11,8 +11,10 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
                                               bool flag_u, double u )
 // creates an Instance from flags and filename
 {
+  // set _D
   loadFromTSPLIB( filename );
 
+  // set _f
   if( flag_f )
     _f = f;
   else
@@ -21,22 +23,23 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
     cout << "_f\t" << _f << endl;
   }
 
+  // set _u
   if( flag_u )
     _u = u;
   else
     _u = U_DEFAULT;
-
-  _cost = 0;
+    
+  // make sure _best_cost is greater than any cost we'll find
   _best_cost = std::numeric_limits<double>::infinity();
 
-  first_partition();
+  // intial assignment
+  next_partition();
 }
 
 void Instance::loadFromTSPLIB( const string &filename )
 // loads the points from file
 {
   _D = vector<Point>();
-  _x = assignment();
 
   std::ifstream in ( "testfile" );
   string line, word;
@@ -48,6 +51,7 @@ void Instance::loadFromTSPLIB( const string &filename )
   while( getline( in, line ) )
   {
     if( node_coord_section )
+    // second part: read the coordinates of customers
     {
       {
         std::stringstream ss ( line );
@@ -66,6 +70,7 @@ void Instance::loadFromTSPLIB( const string &filename )
       CHECK( i == _D.size() );
     }
     else
+    // first part: wait for node_coord_section to start
     {
       std::stringstream ss( line );
       ss >> word;
@@ -77,12 +82,12 @@ void Instance::loadFromTSPLIB( const string &filename )
     }
   }
 
-  // shouldn't be here as last line should read EOF
+  // this check wont be exectued for valid input files
   CHECK( false );
 }
 
 void Instance::solve()
-// finds the optimal solution for this Instance
+// finds the optimal solution for this Instance and prints it
 {
   while( not finished() )
   {
@@ -95,39 +100,31 @@ void Instance::solve()
 }
 
 void Instance::next_partition()
-/* Picture all partitions of sets {1, ..., m} with m <= |D| as an aborescens
- * with an order onoutgoing edges at every vertex. Basic idea is to back-
- * track untill there is a higher order outgoing edge where we are, then
- * allways take the lowest order edge possible.
- * To also consider things like capacities, we check legality and might need
- * to do additional steps backwards.
- * Iff we find no partition this way, we allready iterated over all
- * paritions and the while loop stops with _x.size() == 0.
+/* finds the next full assignments, where assignments are ordered
+ * lexicographically or the empty assignment if there is no next
+ * full assignment
  */
 {
-  backward();
-  if( _x.size() == 0 )
-    return ;
-
-  while( _x.size() < _D.size() )
-  {;
-    forward();
-    while( !legal() )
-      backward();
+  if( _x.size() != 0 )
+  /* if x is allready an assignment, not an empty vector,
+   * we need to go backward to a point
+   * where we can assign differntly
+   */
+  {
+    backward();
     if( _x.size() == 0 )
+    // so we stop after the last assignment
       return ;
   }
-}
 
-void Instance::first_partition()
-// does exactly the same as next_bartition apart from the initial step back
-{
   while( _x.size() < _D.size() )
   {
     forward();
     while( !legal() )
       backward();
+
     if( _x.size() == 0 )
+    // so we stop after the last assignment
       return ;
   }
 }
@@ -139,17 +136,25 @@ bool Instance::finished() const
 }
 
 bool Instance::legal() const
-// TODO
+/* checks if the current assignment is legal
+ * ASSUMING the assignment was legal before we
+ * set the back of _x to it's current value.
+ * we optimise runtime by also returning false if any assignment
+ * we could find has allready higher cost then our optimum so far
+ */
 {
   if( _x.size() == 0 )
+  // spectial case
   {
     return true;
   }
   else if( not _I.at( _x.back() ).satisfies_capacity( _u ) )
+  // the actuall point of this function
   {
     return false;
   }
-  else if ( _cost >= _best_cost && true ) // HERE
+  else if ( _cost >= _best_cost )
+  // the optimisation
   {
     return false;
   }
@@ -160,18 +165,19 @@ bool Instance::legal() const
 }
 
 void Instance::forward()
-// tries to make the partial assignment greater by appending a 0
+// the lexicographically next partial assignment
 {
   place( 0 );
 }
 
 void Instance::backward()
-/* backtracks to the point where we could have chosen to assign a
- * point to a different facility and does so
+/* the lexicographically next partial assignment skipping
+ * all partial assignments which start with the current _x
  */
 {
   unsigned i;
   do
+  // unplace until we can place at i+1
     i = unplace();
   while( _x.size() > 0 && i >= _I.size() );
   if( i < _I.size() )
@@ -179,10 +185,8 @@ void Instance::backward()
 }
 
 void Instance::place( unsigned i )
-/* If we have a partial Assignment from {0, ..., m-1} to {0, ..., k-1}
- * this function takes an index 0 <= i <= k and creates a partial Assignment
- * {0, ..., m} by mapping m to i.
- * We also update the optimal faciltiy placement and cost for the assignment.
+/* Given a partial assignment, assigns the next customer to the i-th facility
+ * updates optimal position of the i-th facility and optimal cost
  */
 {
   // check if the parameter was valid
@@ -207,12 +211,7 @@ void Instance::place( unsigned i )
 }
 
 unsigned Instance::unplace()
-/* If we have a partial assignment of {0, ..., m} to {0, .. k}, we create
- * a partial assignment of {0, ..., m-1} by unplacing m.
- * Note that by convention the sets are ordered by smallest element ascending,
- * so if we need to delete any set, it should be _v[k]
- * We also update the facility placement and cost for the assignment.
- */
+// the inverse map to place
 {
   // Check if we can uplace something
   CHECK( _x.size() > 0 );
@@ -252,7 +251,7 @@ void Instance::print() const
 }
 
 void Instance::save()
-// writes best solution so far
+// saves best solution so far
 {
   _best_x = _x;
   _best_I = _I;
