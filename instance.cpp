@@ -27,7 +27,12 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
     _u = u;
   else
     _u = U_DEFAULT;
-    
+
+  // start with empty assignment
+  _x = assignment();
+  _I = vector<Point>();
+  _cost = 0;
+
   // make sure _best_cost is greater than any cost we'll find
   _best_cost = std::numeric_limits<double>::infinity();
 
@@ -261,8 +266,8 @@ void Instance::print() const
 void Instance::save()
 // saves best solution so far
 {
-  _best_x = _x;
-  _best_I = _I;
+  _best_x = assignment( _x );
+  _best_I = vector<Point>( _I );
   _best_cost = _cost;
 }
 
