@@ -7,8 +7,6 @@
 #define U_DEFAULT -1
 
 typedef std::vector<unsigned> assignment;
-typedef std::vector<unsigned> subset;
-typedef std::vector<subset> subsets;
 
 class Instance
 /*
