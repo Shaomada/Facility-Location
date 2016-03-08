@@ -7,8 +7,11 @@
 
 using namespace std;
 
-Instance::Instance ( const string &filename, bool flag_f, double f,
-                                              bool flag_u, double u )
+Instance::Instance ( const std::string &filename,
+                     bool flag_f, double f,
+                     bool flag_u, double u,
+                     bool flag_k, unsigned k
+                   )
 // creates an Instance from flags and filename
 {
   // set _D
@@ -28,16 +31,14 @@ Instance::Instance ( const string &filename, bool flag_f, double f,
   else
     _u = U_DEFAULT;
 
+  // set _k
+  if( not flag_k )
+    k = max( ceil( (double) _D.size() / _u ), (double) 1 );
+  
   // start with empty assignment
   _x = assignment();
-  _I = vector<Point>();
+  _I = vector<Point>( k, Point() );
   _cost = 0;
-
-  // make sure _best_cost is greater than any cost we'll find
-  _best_cost = std::numeric_limits<double>::infinity();
-
-  // intial assignment
-  next_assignment();
 }
 
 void Instance::loadFromTSPLIB( const string &filename )
@@ -93,164 +94,50 @@ void Instance::loadFromTSPLIB( const string &filename )
 void Instance::solve()
 // finds the optimal solution for this Instance and prints it
 {
-  while( not finished() )
+  initial_assignment();
+  optimize_I();
+  double old_cost;
+  do
   {
-    if( _cost < _best_cost )
-      save();
-    next_assignment();
+    old_cost = _cost;
+    optimize_x();
+    optimize_I();
   }
-  load();
+  while( more_that_marginal_improvement( old_cost ) );
   print();
 }
 
-void Instance::next_assignment()
-/* finds the next full assignments, where assignments are ordered
- * lexicographically or the empty assignment if there is no next
- * full assignment
- */
+void Instance::initial_assignment()
 {
-  if( _x.size() != 0 )
-  /* if x is allready an assignment, not an empty vector,
-   * we need to go backward to a point
-   * where we can assign differntly
-   */
+  for( unsigned i = 0; i < _D.size(); i++ )
   {
-    backward();
-    if( _x.size() == 0 )
-    // so we stop after the last assignment
-      return ;
-  }
-
-  while( _x.size() < _D.size() )
-  {
-    forward();
-    while( !legal() )
-      backward();
-
-    if( _x.size() == 0 )
-    // so we stop after the last assignment
-      return ;
+    _x.push_back( i % _I.size() ); // TODO: better initial assignment
   }
 }
 
-bool Instance::finished() const
-// To check if next_assignment allready ran through all assignments
+void Instance::optimize_x()
+// finds optimal _x for current _I
 {
-  return _x.size() == 0;
+  ; // TODO: implement this
 }
 
-bool Instance::legal() const
-/* checks if the current assignment is legal
- * ASSUMING the assignment was legal before we
- * set the back of _x to it's current value.
- * we optimise runtime by also returning false if any assignment
- * we could find has allready higher cost then our optimum so far
- */
+void Instance::optimize_I()
+// finds optimal _I and corresponding cost for current _x
 {
-  if( _x.size() == 0 )
-  // spectial case
-  {
-    return true;
-  }
-  else if( not _I.at( _x.back() ).satisfies_capacity( _u ) )
-  // the actuall point of this function
-  {
-    return false;
-  }
-  else if ( _cost >= _best_cost )
-  // the optimisation
-  {
-    return false;
-  }
-  else
-  {
-    return true;
-  }
+  // reset _I and _cost
+  for( Point &p : _I )
+    p = Point();
+  _cost = _I.size() * _f;
+
+  // find optimal _I and _cost
+  for( unsigned m = 0; m < _x.size(); m++ )
+    _cost += ( _I.at( _x.at( m ) ) += _D.at( m ) );
 }
 
-void Instance::forward()
-// the lexicographically next partial assignment
+bool Instance::more_that_marginal_improvement( double old_cost )
+// use any heuristic for when to stop here
 {
-  place( 0 );
-}
-
-void Instance::backward()
-/* the lexicographically next partial assignment skipping
- * all partial assignments which start with the current _x
- */
-{
-  unsigned i;
-  do
-  // unplace until we can place at i+1
-    i = unplace();
-  while( _x.size() > 0 && i >= _I.size() );
-  if( i < _I.size() )
-    place( i+1 );
-}
-
-void Instance::place( unsigned i )
-/* Given a partial assignment, assigns the next customer to the i-th facility
- * updates optimal position of the i-th facility and optimal cost
- */
-{
-  // check if the parameter was valid
-  CHECK( i <= _I.size() );
-
-  // for more readability
-  int m = _x.size();
-
-  // update _x
-  _x.push_back( i );
-
-  // memory 1
-  _mem_cost.push_back( _cost );
-
-  if( i == _I.size() )
-  // special case: opening new facility
-  {
-    _I.push_back( Point() );
-    _cost += _f;
-  }
-  else
-  // otherwise: memory 2
-  {
-    _mem_I.push_back( _I.at( i ) );
-  }
-  
-  // update _I and _cost
-  _cost += ( _I.at( i ) += _D.at( m ) );
-}
-
-unsigned Instance::unplace()
-// the inverse map to place
-{
-  // We can only unplace if something is placed
-  CHECK( _x.size() > 0 );
-  
-  // for more readability
-  unsigned m = _x.size() - 1;
-  unsigned i = _x.back();
-
-  // Update _x
-  _x.pop_back();
-  
-  // update _cost
-  _cost = _mem_cost.back();
-  _mem_cost.pop_back();
-  
-  // update _I
-  if( _I.at( i ) == _D.at( m ) )
-  {
-    CHECK( i+1 == _I.size() );
-    _I.pop_back();
-  }
-  else
-  {
-    _I.at( i ) = _mem_I.back();
-    _mem_I.pop_back();
-  }
-
-  return i;
+  return _cost < 0.999999 * old_cost;
 }
 
 void Instance::print() const
@@ -261,22 +148,6 @@ void Instance::print() const
     cout << "FACILITY " << i+1 << " " << _I.at(i).show() << endl;
   for( unsigned i = 0; i < _x.size(); i++ )
     cout << "ASSIGN " << i+1 << " " << _x.at( i )+1 << endl;
-}
-
-void Instance::save()
-// saves best solution so far
-{
-  _best_x = assignment( _x );
-  _best_I = vector<Point>( _I );
-  _best_cost = _cost;
-}
-
-void Instance::load()
-// loads best solution found
-{
-  _x = _best_x;
-  _I = _best_I;
-  _cost = _best_cost;
 }
 
 double Instance::max_dist()

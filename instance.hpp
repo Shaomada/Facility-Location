@@ -16,9 +16,12 @@ class Instance
  */
 {
 
-public:  
-  Instance ( const std::string &filename, bool flag_f, double f,
-                                          bool flag_u, double u );
+public:
+  Instance ( const std::string &filename,
+             bool flag_f, double f,
+             bool flag_u, double u,
+             bool flag_k, unsigned k
+           );
                                           
   void solve();
 
@@ -32,33 +35,17 @@ private:
   assignment _x;
   std::vector<Point> _I;
   double _cost;
-  
-  // memory for backtracking
-  std::vector<double> _mem_cost;
-  std::vector<Point> _mem_I;
-
-  // for the best assignment found so far
-  assignment _best_x;
-  std::vector<Point> _best_I;
-  double _best_cost;
 
   // for loading from file
   void loadFromTSPLIB( const std::string &filename );
 
-  // for iterating over all assignments in solve
-  void next_assignment();
-  bool finished() const;
+  // helpers for solve
+  void initial_assignment();
+  void optimize_x();
+  void optimize_I();
+  bool more_that_marginal_improvement( double old_cost );
 
-  // helpers for next_assignment
-  bool legal() const;
-  void forward();
-  void backward();
-  void place( unsigned i );
-  unsigned unplace();
-
-  // for actually printing the best solution
-  void save();
-  void load();
+  // for actually printing the solution
   void print() const;
 
   // for default faciltity costs
