@@ -1,18 +1,8 @@
 #include "common.hpp"
 
+#include <math.h>
+
 using namespace std;
-
-double abs( double x )
-// the absolute value of x
-{
-  return x < 0 ? -x : x;
-}
-
-double max( double a, double b )
-// the maximum of a and b
-{
-  return b > a ? b : a;
-}
 
 void check( bool is_true, string file, int line )
 /* for debugging

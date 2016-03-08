@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <math.h>
 
 using std::vector;
 using std::string;
@@ -10,9 +11,6 @@ using std::to_string;
 
 class Point;
 class Instance;
-
-double abs( double x );
-double max( double a, double b );
 
 void check( bool is_true, std::string file, int line );
 
