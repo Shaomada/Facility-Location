@@ -11,6 +11,9 @@ using std::to_string;
 
 class Point;
 class Instance;
+class Vertex;
+class Edge;
+class Graph;
 
 void check( bool is_true, std::string file, int line );
 
