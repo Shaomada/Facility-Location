@@ -64,7 +64,7 @@ bool Point::satisfies_capacity( unsigned u ) const
 }
 
 double Point::dist( const Point &p ) const
-// the distance of p from this
+// the (unweighted) distance of p from this
 {
   double dx = _x/_w - p._x/p._w;
   double dy = _y/_w - p._y/p._w;
