@@ -22,8 +22,17 @@ public:
              bool flag_u, double u,
              bool flag_k, unsigned k
            );
-                                          
+
+  // access for main
   void solve();
+
+  // read sizes
+  unsigned size_D() const;
+  unsigned size_I() const;
+  unsigned get_u() const;
+
+  // read the distance of _D[i] from _I[j]
+  double distance( unsigned i, unsigned j ) const;
 
 private:
   // the actual Instance of the problem

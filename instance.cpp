@@ -91,6 +91,30 @@ void Instance::loadFromTSPLIB( const string &filename )
   CHECK( false );
 }
 
+// getter
+unsigned Instance::size_D() const
+{
+  return _D.size();
+}
+
+// getter
+unsigned Instance::size_I() const
+{
+  return _I.size();
+}
+
+// getter
+unsigned Instance::get_u() const
+{
+  return _u;
+}
+
+// read the distance of _D[i] from _I[j]
+double Instance::distance( unsigned i, unsigned j ) const
+{
+  return _D.at( i ).dist( _I.at( j ) );
+}
+
 void Instance::solve()
 // finds the optimal solution for this Instance and prints it
 {
