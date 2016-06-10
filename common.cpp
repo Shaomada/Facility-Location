@@ -1,6 +1,7 @@
 #include "common.hpp"
 
 #include <math.h>
+#include <iostream>
 
 using namespace std;
 
@@ -11,5 +12,5 @@ void check( bool is_true, string file, int line )
  */
 {
   if( !is_true )
-    throw "CHECK failed in File " + file + " Line " + std::to_string( line );
+    std::cout << "CHECK failed in File " + file + " Line " + std::to_string( line ) << std::endl;
 }

@@ -11,8 +11,6 @@ using std::to_string;
 
 class Point;
 class Instance;
-class Vertex;
-class Edge;
 class Graph;
 
 void check( bool is_true, std::string file, int line );
@@ -22,7 +20,7 @@ void check( bool is_true, std::string file, int line );
  */
 #if 1
 #define LOCATION __FILE__ , __LINE__
-#define CHECK( IS_TRUE ) check( IS_TRUE, LOCATION )
+#define CHECK( IS_TRUE ) check( IS_TRUE, LOCATION );
 
 #else
 #define CHECK( IS_TRUE, ERROR )

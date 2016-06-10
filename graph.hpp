@@ -1,83 +1,150 @@
 #ifndef GRAPH_HPP
 #define GRAPH_HPP
 
-#include "common.hpp"
+#include "heap.hpp"
+#include "point.hpp"
+#include <vector>
+#include <limits>
+#include <functional>
 
-using namespace std;
-
-// typedef bool Direction;
-/*
- * true: take the forward Edge in the Residual Graph
- * false: take the backward Edge in the Residual Graph
- */
-
-class Vertex
-{
+class Graph {
 public:
-  Vertex( int b );
+  class Node;
+  class Edge;
+  class ForwardEdge;
+  class BackwardEdge;
 
-  // for creating the Graph
-  void add_edge( Edge edge, bool dir );
-
-  // void dij_visit()
-
+  /**
+   * This Graph will be used to compute all min cost flows needed in one instance of the problem.
+   * Thus we only create objects and set capacities here, as distances will be different every
+   * time we need to compute a new flow.
+   */
+  Graph(unsigned n_D, unsigned n_I, unsigned u);
+  ~Graph();
+  /**
+   * Will compute an optimal assignment for Customer D and Facilities I and save it in x.
+   * You may only call this on a Graph which was initialised with the right numbers,
+   * ie with n_D = D.size() and n_I = I.size().
+   */
+  void compute_optimal_assignment(const std::vector<Point> &D, const std::vector<Point> &I, std::vector<unsigned> &x);
 private:
-  // data as a Vertex in a Graph
-  vector<Flag> _edges;
-  // the bool is true iff you are supposed to take the forward edge in RG
+  /**
+   * Read the optimal assignment from the min cost flow we computed
+   */
+  void read_assignment (unsigned n_D, unsigned n_I, std::vector<unsigned> &x);
+  /**
+   * Helper function for run_dijkstra.
+   * Will be called when we visit e->tail() and consider the path to e->head()
+   * using e. If it's shorter than e->head()->dij_dist, the length of an shortest
+   * source - e->head() - path found so far, we will update dij_dist and dij_parent
+   * to save the new path and afterwards handle neccessary heap operations.
+   */
+  void decrease_dij_dist (Edge *e);
+  /**
+   * Computes a shortest path aborescens rooted at the node n,
+   * saved at each node in \em dij_parent and \em dij_children.
+   */
+  void run_dijkstra (Node *n);
 
-  // additional data as Vertex in a Network
-  int _b;
+  /**
+   * Prepares distances, potential, bvalues and flow for \em run_successive_shortest_path.
+   */
+  void ssp_reset (const std::vector<Point> &D, const std::vector<Point> &I);
+  /**
+   * Finds a min cost flow using the successive shortest path algorithm.
+   * Note we have exactly one source and each sink has an balance of -1.
+   * Thus it is a good idea to get more than one shortest path out of each
+   * dijkstra call, as we do using the helper function ssp_push
+   */
+  void run_successive_shortest_path ();
+  /** Helper function for run_successive_shortest_path.
+   * Pushes as much flow as possible along the shortest path tree
+   * previously computed by \em run_dijkstra.
+   * Returns the amount of flow we could push through this edge.
+   */
+  int ssp_push (Node *n, int amount);
 
-  // for dijkstra
-  bool _dij_visited;
-  float _dij_distance;
-  pair<Flag> _dij_parent;
-  vector<Flag> _dij_childs;
+#if 0
+  /// for debugging purposes
+  ///@{
+  void print ();
+  void print_dij_tree (Node *n, unsigned indent = 0);
+  void print_dij_data ();
+  void print_dij_visit (Node *n);
+  ///@}
+#endif
+private:
+  std::vector<Node> _nodes;
+  std::vector<Edge> _edges;
+  Heap<Node> _h;
 };
 
-class Flag
-{
+/// A Node in the residual Graph.
+class Graph::Node {
 public:
-  Flag( bool is_head, Edge edge );
-
-private:
-  Edge _edge;
-  bool _is_head;
+  inline Node () : outgoing_edges(), dij_children() { b = 0;}
+  std::vector<Edge *> outgoing_edges;
+  double dij_dist;
+  double pi;
+  int b;
+  Edge *dij_parent;
+  std::vector<Edge *> dij_children;
+  Heap<Node>::Node *heap_node;
+public:
+  inline bool operator<(const Node &rhs) { return dij_dist < rhs.dij_dist; }
 };
 
-class Edge
-{
+/// Any Edge in the residual Graph.
+class Graph::Edge {
 public:
-  Edge( Vertex tail, Vertex head, unsigned capacity, float cost = 0 );
-
-private:
-  // data as an Edge of a Graph
-  Vertex _tail;
-  Vertex _head;
-
-  // additional data as an Edge in a Network
-  double _cost;
-  unsigned _flow;
-  unsigned _capacity;
+  ~Edge() { }
+  /// True if the Edge exists in the residual Graph for current flow.
+  inline bool is_valid () const { return capacity() > 0; }
+  /// The Node in which the Edge ends.
+  virtual Node *head () const = 0;
+  /// The Node in which the Edge starts.
+  virtual Node *tail () const = 0;
+  /// The capacity of the Edge in the residual Graph.
+  virtual int capacity () const = 0;
+  /// The \em unreduced cost of the residual Edge.
+  virtual double distance() const = 0;
+  /// Increase_flow flow by and returns \param amount.
+  virtual int increase_flow (int amount) = 0; // returning amount
 };
 
-class Graph
-{
+/// A forward Edge in the residual Graph.
+class Graph::ForwardEdge : public Edge {
 public:
-  // read Input SSP
-  Graph( const Instance &inst );
-
-  // output SSP
-  vector<unsigned> output( const Instance &inst );
-
+  ForwardEdge(Node *tail, Node *head, int capacity) : _head(head), _tail(tail)
+  , _capacity(capacity), _distance(0) { this->_tail->outgoing_edges.push_back(this); }
+  inline Node *head () const { return _head; }
+  inline Node *tail () const { return _tail; }
+  inline int capacity () const { return _capacity-_flow; }
+  inline double distance() const { return _distance; }
+  inline int increase_flow (int amount) { _flow += amount; return amount; }
+  inline void reset_flow () { _flow = 0; }
+  /// to set the cost new depending on the current position of Customer and  Facility and Facility
+  inline void reset_distance (double distance) { _distance = distance; }
 private:
-  // relevant data from Instance
-  unsigned n_D;
-  unsigned n_I;
+  friend class BackwardEdge;
+  Node *_head;
+  Node *_tail;
+  int _capacity;
+  double _distance;
+  int _flow;
+};
 
-  // for saving the vertices
-  vector<Vertex> _vertices;
+/// A backward Edge in the residual Graph.
+class Graph::BackwardEdge : public Edge {
+public:
+  BackwardEdge (ForwardEdge *e) : _e(e) { _e->_head->outgoing_edges.push_back(this); }
+  inline double distance() const { return -_e->_distance; }
+  inline Node *head () const { return _e->_tail; }
+  inline Node *tail () const { return _e->_head; }
+  inline int capacity () const { return _e->_flow; }
+  inline int increase_flow (int amount) { _e->_flow-=amount; return amount; }
+private:
+  ForwardEdge *_e;
 };
 
 #endif

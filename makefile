@@ -2,7 +2,7 @@ CC=g++ -std=c++11 -g
 CFLAGS=-c -Wall -pedantic-errors
 LDFLAGS=-Wall -pedantic-errors
 
-SOURCES=main.cpp common.cpp instance.cpp point.cpp
+SOURCES=main.cpp common.cpp instance.cpp point.cpp graph.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=optimal_facility_location
 
