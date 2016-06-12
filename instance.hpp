@@ -2,7 +2,7 @@
 #define INSTANCE_HPP
 
 #include "common.hpp"
-#include <limits>
+#include "graph.hpp"
 
 #define U_DEFAULT -1
 
@@ -17,47 +17,53 @@ class Instance
 {
 
 public:
+  ~Instance ();
   Instance ( const std::string &filename,
              bool flag_f, double f,
              bool flag_u, double u,
              bool flag_k, unsigned k
            );
 
-  // access for main
+  /// Finds a "good" solution for this Instance.
   void solve();
 
-  // read sizes
-  unsigned size_D() const;
-  unsigned size_I() const;
-  unsigned get_u() const;
-
-  // read the distance of _D[i] from _I[j]
-  double distance( unsigned i, unsigned j ) const;
-
 private:
-  // the actual Instance of the problem
+  /// the actual Instance of the problem
+  /// @{
   double _u;
   double _f;
   std::vector<Point> _D;
+  /// @}
   
-  // for the (possibly partial) assignemnt we consider right now
+  /// the solution we consider right now
+  /// @{
   assignment _x;
   std::vector<Point> _I;
   double _cost;
+  /// @}
 
-  // for loading from file
+  /// for minimum cost flow via ssp
+  Graph *_graph;
+
+  /// for loading from file
   void loadFromTSPLIB( const std::string &filename );
 
-  // helpers for solve
+  /// TODO: random assignemnt?
   void initial_assignment();
+  
+  /// finds optimal x for current I
   void optimize_x();
+  
+  /// finds optimal I for current x
   void optimize_I();
+  
+  /// to decide if we should continue trying to improve our solution
   bool more_that_marginal_improvement( double old_cost );
 
-  // for actually printing the solution
+  /// prints the current solution to std::cout
   void print() const;
 
-  // for default faciltity costs
+  /// the maximal distance of two customers
   double max_dist();
 };
 

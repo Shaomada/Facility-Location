@@ -1,7 +1,6 @@
 #include "point.hpp"
 
 Point::Point()
-// neutral element of addition
 {
   _x = 0;
   _y = 0;
@@ -9,7 +8,6 @@ Point::Point()
 }
 
 Point::Point( double x, double y )
-// creates a point with weight 1
 {
   _x = x;
   _y = y;
@@ -17,7 +15,6 @@ Point::Point( double x, double y )
 }
 
 Point::Point( const Point &p )
-// copys a point
 {
   _x = p._x;
   _y = p._y;
@@ -25,7 +22,6 @@ Point::Point( const Point &p )
 }
 
 Point &Point::operator=( const Point &p )
-// copys a point
 {
   _x = p._x;
   _y = p._y;
@@ -34,7 +30,6 @@ Point &Point::operator=( const Point &p )
 }
 
 double Point::operator+=( const Point &p )
-// takes the barycenter of 2 points, returns the cost
 {
   Point q = *this;  
   
@@ -72,7 +67,6 @@ double Point::dist( const Point &p ) const
 }
 
 double Point::cost( const Point &p ) const
-// the cost for moving p to this point
 {
   if( p._w == 0 )
     return 0;
