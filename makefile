@@ -1,6 +1,7 @@
 CC=g++ -std=c++11 -g
-CFLAGS=-c -Wall -pedantic-errors
-LDFLAGS=-Wall -pedantic-errors
+CXX=g++ -std=c++11 -c -g
+CFLAGS=-Wall -Wpedantic -Werror
+LDFLAGS=-Wall -Wpedantic -Werror
 
 SOURCES=main.cpp solver.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
@@ -16,7 +17,7 @@ $(EXECUTABLE): $(OBJPATHS)
 
 $(OBJDIR)/%.o: %.cpp *.hpp
 	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) $< -o $@
+	$(CXX) $(CFLAGS) $< -o $@
 
 clean:
 	rm -rf $(OBJDIR)
