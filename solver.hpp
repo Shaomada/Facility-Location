@@ -30,11 +30,6 @@ private:
   // prints the current assignment
   void print ();
   
-#if 0
-  // prints the current dij_tree
-  void print_tree ();
-#endif
-  
   /// Successive Shortest Path Algorithm Implementation
   void ssp_algorithm ();
   void ssp_init ();

@@ -53,18 +53,6 @@ void Solver::optimize_x ()
     f.outflow = 0;
   }
   ssp_algorithm();
-#if 1
-  flow_t nr = 0;
-  for (const Customer &c : _D) {
-    if (c.flow_parent) {
-      nr++;
-      std::cout << &c-&_D.front() << "\t" << c.flow_parent-&_I.front() << std::endl;
-    } else {
-      std::cout << &c-&_D.front() << "\t" << "none" << std::endl;
-    }
-  }
-  std::cout << "nr is " << nr << " opposed to _D.size() " << _D.size() << std::endl;
-#endif
 }
 
 void Solver::compute_cost()
@@ -226,30 +214,3 @@ void Solver::dij_compute_children () {
     }
   }
 }
-
-#if 0
-void Solver::print_tree()
-{
-  std::function<void(const Facility *,unsigned)> print_rek = [&](const Facility *f, unsigned depth) {
-    for (unsigned i = 0; i < depth; i++) {
-      std::cout << "  ";
-    }
-    std::cout << f-&_I.front() << std::endl;
-    ++depth;
-    for (const Customer *c : f->dij_children) {
-      for (unsigned i = 0; i < depth; i++) {
-        std::cout << "  ";
-      }
-      std::cout << c-&_D.front() << std::endl;
-      if (c->flow_parent) {
-        print_rek(c->flow_parent, depth);
-      }
-    }
-  };
-  for (const Facility &f : _I) {
-    if (f.outflow < _u) {
-      print_rek(&f, 0);
-    }
-  }
-}
-#endif
