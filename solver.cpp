@@ -22,10 +22,12 @@ Solver::Solver(flow_t u, const std::vector< Point >& D, const std::vector< Point
 void Solver::solve () {
   dist_t old_cost = _cost;
   do {
+    old_cost = _cost;
     optimize_x();
     optimize_I();
     compute_cost();
-  } while (old_cost - _cost > 1e-10 * old_cost);
+    std::cout << "cost improved to\t" << _cost << "\tfrom\t" << old_cost << std::endl;
+  } while (old_cost - _cost > 1e-10 * old_cost || old_cost == std::numeric_limits<double>::infinity());
   print();
 }
 
