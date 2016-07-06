@@ -3,6 +3,10 @@
 #include <functional>
 #include <limits>
 
+#ifdef PRINT_ADDITIONAL_INFORMATION
+#include <chrono>
+#endif
+
 Solver::Solver(flow_t u, const std::vector< Point >& D, const std::vector< Point >& I, dist_t facility_cost)
   : _u(u)
   , _D()
@@ -93,6 +97,11 @@ void Solver::print()
  * consider lenght 2 paths which have the Customer as inner Vertex as Edges.
  */
 void Solver::ssp_algorithm () {
+#ifdef PRINT_ADDITIONAL_INFORMATION
+  const int print_every_n_seconds = 3;
+  static std::chrono::time_point<std::chrono::system_clock> last_print;
+  last_print = std::chrono::system_clock::now();
+#endif
   std::vector<Customer *> unsupplied;
   for (Customer &c : _D) {
     unsupplied.push_back(&c);
@@ -107,13 +116,11 @@ void Solver::ssp_algorithm () {
     increase_flow(unsupplied);
     dij_reinit(unsupplied);
 #ifdef PRINT_ADDITIONAL_INFORMATION
-    static unsigned counter = 0;
-    if (counter < unsupplied.size()) {
-      counter = 1.1*_D.size();
-    }
-    if (counter - unsupplied.size() >= 0.1 * _D.size()) {
-      counter = unsupplied.size();
+    std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+    int elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(now-last_print).count();
+    if (elapsed_seconds > print_every_n_seconds) {
       std::cout << "currently unsupplied\t" << unsupplied.size() << "\tof originally\t" << _D.size() << std::endl;
+      last_print = now;
     }
 #endif
   }
