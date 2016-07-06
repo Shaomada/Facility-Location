@@ -93,6 +93,7 @@ struct Solver::Facility : public Point {
   inline Facility(Point p)
     : Point(p.x, p.y) { }
   inline bool operator<(const Facility &rhs) const { return dij_dist < rhs.dij_dist; } // for heap in dijkstra
+  inline bool is_minimal_possible () const { return dij_dist == 0; } // trick for speeding up the heap
   dist_t dij_dist;
   dist_t pi;
   Customer *dij_parent;

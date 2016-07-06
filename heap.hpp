@@ -15,6 +15,7 @@ private:
   void iter(Node *n);
   void plant(Node *n);
   std::vector<Node *> roots;
+  std::vector<Node *> zeros;
 };
 
 template <typename T>
@@ -77,12 +78,16 @@ void Heap<T>::Node::pop ()
 }
 
 template <typename T>
-Heap<T>::Heap() : roots() {}
+Heap<T>::Heap() : roots(), zeros() {}
 
 template <typename T>
 typename Heap<T>::Node *Heap<T>::add (T *content) {
   Node *n = new Node(content);
-  plant(n);
+  if (content->is_minimal_possible()) {
+    zeros.push_back(n);
+  } else {
+    plant(n);
+  }
   return n;
 }
 
@@ -119,6 +124,12 @@ void Heap<T>::decrease (Node *n)
 template <typename T>
 T *Heap<T>::extract_min()
 {
+  if (!zeros.empty()) {
+    T *retval = zeros.back()->content;
+    delete zeros.back();
+    zeros.pop_back();
+    return retval;
+  }
   Node *min = nullptr;
   for (Node *n : roots) {
     if (n && (!min || *n < *min)) {
