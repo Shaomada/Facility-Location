@@ -41,12 +41,10 @@ private:
    * Increases the current flow along paths in the dij_tree by as much as possible.
    * Returns increase in flow.
    */
-  flow_t increase_flow ();
+  void increase_flow (std::vector<Customer *> &unsupplied);
   
-  /** Tries to find a path from \param c to a sink and increase flow along it.
-   * Returns true iff that was successfull.
-   */
-  bool search_sink (Customer *c);
+  /// tries to supply c through the dij_tree, deleting the edge considered from the tree
+  bool supply (Customer *c);
   
   /// resets distances, dij_tree, heapnodes in preparation for dij_algorithm
   void dij_init ();
@@ -82,21 +80,22 @@ struct Solver::Point
 struct Solver::Customer : public Point {
   inline Customer(Point p)
     : Point(p.x, p.y) { } 
-  Facility *flow_parent;
-  Facility *dij_parent;
   dist_t dij_dist;
+  Facility *dij_parent;
+  /// represents the incoming Edge
+  Facility *flow_parent;
 };
 
 struct Solver::Facility : public Point {
   inline Facility(Point p)
     : Point(p.x, p.y) { }
   inline bool operator<(const Facility &rhs) const { return dij_dist < rhs.dij_dist; } // for heap in dijkstra
-  flow_t outflow;
-  Customer *dij_parent;
-  std::vector<Customer *> dij_children;
   dist_t dij_dist;
   dist_t pi;
+  Customer *dij_parent;
   Heap<Facility>::Node *heap_node;
+  /// represents the incoming Edge
+  flow_t outflow;
 };
 
 #endif

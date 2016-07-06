@@ -93,49 +93,51 @@ void Solver::print()
  * consider lenght 2 paths which have the Customer as inner Vertex as Edges.
  */
 void Solver::ssp_algorithm () {
-  flow_t pushed = 0;
-  while (pushed < _D.size()) {
-    dij_init();
+  std::vector<Customer *> unsupplied;
+  for (Customer &c : _D) {
+    unsupplied.push_back(&c);
+  }
+  dij_init();
+  while (!unsupplied.empty()) {
     dij_algorithm();
-    dij_compute_children();
     for (Facility &f : _I) {
       f.pi += f.dij_dist;
+      f.dij_dist = 0;
     }
-    pushed += increase_flow();
+    increase_flow(unsupplied);
+    dij_init();
 #ifdef PRINT_ADDITIONAL_INFORMATION
-    std::cout << "currently pushed\t" << pushed << "\tof\t" << _D.size() << "\tneccessary." << std::endl;
+    std::cout << "currently unsupplied\t" << unsupplied.size()
+              << "\tof originally\t" << _D.size() 
+              << std::endl;
 #endif
   }
 }
 
-Solver::flow_t Solver::increase_flow () {
-  flow_t retval = 0;
-  for (Facility &f : _I) {
-    for (Customer *c : f.dij_children) {
-      if (f.outflow == _u) {
-        break;
-      }
-      if (search_sink(c)) {
-        c->flow_parent = &f;
-        ++f.outflow;
-        ++retval;
-      }
+void Solver::increase_flow (std::vector<Customer *> &unsupplied) {
+  for (flow_t i = 0; i < unsupplied.size(); i++) {
+    if (supply(unsupplied.at(i))) {
+      std::swap (unsupplied.at(i), unsupplied.back());
+      unsupplied.pop_back();
+      i--;
     }
   }
-  return retval;
 }
 
-bool Solver::search_sink (Customer *c) {
-  if (c->flow_parent) {
-    for (Customer *c2 : c->flow_parent->dij_children) {
-      if (search_sink(c2)) {
-        c2->flow_parent = c->flow_parent;
-        return true;
-      }
-    }
-    return false;
-  } else {
+bool Solver::supply (Customer *c) {
+  Facility *f = c->dij_parent;
+  c->dij_parent = nullptr;
+  if (f->outflow < _u) {
+    c->flow_parent = f;
+    c->flow_parent->outflow++;
     return true;
+  } else if (f->dij_parent && supply(f->dij_parent)) {
+    c->flow_parent = f;
+    f->dij_parent = nullptr;
+    return true;
+  } else {
+    f->dij_parent = nullptr;
+    return false;
   }
 }
 
@@ -145,7 +147,6 @@ void Solver::dij_init () {
     c.dij_parent = nullptr;
   }
   for (Facility &f : _I) {
-    f.dij_children.clear();
     f.dij_parent = nullptr;
     if (f.outflow < _u) {
       f.dij_dist = 0;
@@ -183,19 +184,6 @@ void Solver::dij_algorithm () {
         c.dij_dist = dist;
         c.dij_parent = f;
       }
-    }
-  }
-}
-
-void Solver::dij_compute_children () {
-  for (Facility &f : _I) {
-    if (f.dij_parent) {
-      f.dij_parent->dij_parent->dij_children.push_back(f.dij_parent);
-    }
-  }
-  for (Customer &c : _D) {
-    if (c.dij_parent && !c.flow_parent) {
-      c.dij_parent->dij_children.push_back(&c);
     }
   }
 }
