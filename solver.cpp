@@ -105,21 +105,27 @@ void Solver::ssp_algorithm () {
       f.dij_dist = 0;
     }
     increase_flow(unsupplied);
-    dij_init();
+    dij_reinit(unsupplied);
 #ifdef PRINT_ADDITIONAL_INFORMATION
-    std::cout << "currently unsupplied\t" << unsupplied.size()
-              << "\tof originally\t" << _D.size() 
-              << std::endl;
+    static unsigned counter = 0;
+    if (counter < unsupplied.size()) {
+      counter = 1.1*_D.size();
+    }
+    if (counter - unsupplied.size() >= 0.1 * _D.size()) {
+      counter = unsupplied.size();
+      std::cout << "currently unsupplied\t" << unsupplied.size() << "\tof originally\t" << _D.size() << std::endl;
+    }
 #endif
   }
 }
 
 void Solver::increase_flow (std::vector<Customer *> &unsupplied) {
-  for (flow_t i = 0; i < unsupplied.size(); i++) {
+  for (flow_t i = 0; i < unsupplied.size();) {
     if (supply(unsupplied.at(i))) {
       std::swap (unsupplied.at(i), unsupplied.back());
       unsupplied.pop_back();
-      i--;
+    } else {
+      i++;
     }
   }
 }
@@ -158,9 +164,42 @@ void Solver::dij_init () {
   }
 }
 
+void Solver::dij_reinit(std::vector<Customer *> &unsupplied)
+{
+  for (Customer *c : unsupplied) {
+    c->dij_dist = std::numeric_limits<double>::infinity();
+  }
+  for (Facility &f : _I) {
+    f.dij_dist = std::numeric_limits<double>::infinity();
+    f.heap_node = nullptr; //?
+  }
+  for (Facility &f : _I) {
+    if (has_path(&f)) {
+      f.dij_dist = 0;
+      f.heap_node = _heap.add(&f);
+    }
+  }
+}
+
+bool Solver::has_path(Solver::Facility* f)
+{
+  if (f->dij_dist == 0) {
+    return true;
+  } else if (f->outflow < _u) {
+    return true;
+  } else if (!f->dij_parent || !f->dij_parent->dij_parent) {
+    return false;
+  } else if (has_path(f->dij_parent->dij_parent)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void Solver::dij_algorithm () {
   Facility *f;
   while (f = _heap.extract_min(), f) {
+    f->heap_node = nullptr;
     for (Customer &c : _D) {
       if (c.flow_parent == f) {
         continue;

@@ -43,11 +43,17 @@ private:
    */
   void increase_flow (std::vector<Customer *> &unsupplied);
   
-  /// tries to supply c through the dij_tree, deleting the edge considered from the tree
+  /// tries to supply c through the dij_tree, deleting the edge considered from the tree.
   bool supply (Customer *c);
   
-  /// resets distances, dij_tree, heapnodes in preparation for dij_algorithm
+  /// resets distances, dij_tree, heapnodes in preparation for the first dijkstra call.
   void dij_init ();
+  
+  /// initialises keeping the parts of the last dij_tree which still exist.
+  void dij_reinit (std::vector<Customer *> &unsupplied);
+  
+  /// returns true if there if f can still be reached from source using the rest of the dij_tree.
+  bool has_path(Facility *f);
   
   /**
    * Runs dijkstra on the residual Graph.
@@ -56,9 +62,6 @@ private:
    * or outdegree 1, in which case we can shortcut without increasing number of Edges.
    */
   void dij_algorithm ();
-  
-  /// brings the dij_tree computed previously into the form needed for ssp_push
-  void dij_compute_children ();
   
   const flow_t _u;
   std::vector<Customer> _D;
