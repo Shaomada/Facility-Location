@@ -5,6 +5,10 @@
 #include <vector>
 #include <string>
 
+#if 1
+#define PRINT_ADDITIONAL_INFORMATION
+#endif
+
 class Solver {
 public:
   typedef unsigned flow_t;
@@ -32,11 +36,30 @@ private:
   
   /// Successive Shortest Path Algorithm Implementation
   void ssp_algorithm ();
-  void ssp_init ();
-  flow_t ssp_push ();
-  bool try_push (Customer *c);
+  
+  /**
+   * Increases the current flow along paths in the dij_tree by as much as possible.
+   * Returns increase in flow.
+   */
+  flow_t increase_flow ();
+  
+  /** Tries to find a path from \param c to a sink and increase flow along it.
+   * Returns true iff that was successfull.
+   */
+  bool search_sink (Customer *c);
+  
+  /// resets distances, dij_tree, heapnodes in preparation for dij_algorithm
   void dij_init ();
+  
+  /**
+   * Runs dijkstra on the residual Graph.
+   * Node is is sufficiant to only add Facilitys into the heap, as Customers either have
+   * outdegree 0, in which case we don't need to propagate them any further,
+   * or outdegree 1, in which case we can shortcut without increasing number of Edges.
+   */
   void dij_algorithm ();
+  
+  /// brings the dij_tree computed previously into the form needed for ssp_push
   void dij_compute_children ();
   
   const flow_t _u;
@@ -58,7 +81,7 @@ struct Solver::Point
 
 struct Solver::Customer : public Point {
   inline Customer(Point p)
-    : Point(p.x, p.y) { }
+    : Point(p.x, p.y) { } 
   Facility *flow_parent;
   Facility *dij_parent;
   dist_t dij_dist;

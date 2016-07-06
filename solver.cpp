@@ -26,7 +26,9 @@ void Solver::solve () {
     optimize_x();
     optimize_I();
     compute_cost();
+#ifdef PRINT_ADDITIONAL_INFORMATION
     std::cout << "cost improved to\t" << _cost << "\tfrom\t" << old_cost << std::endl;
+#endif
   } while (old_cost - _cost > 1e-10 * old_cost || old_cost == std::numeric_limits<double>::infinity());
   print();
 }
@@ -41,8 +43,12 @@ void Solver::optimize_I () {
     c.flow_parent->y += c.y;
   }
   for (Facility &f : _I) {
-    f.x /= f.outflow;
-    f.y /= f.outflow;
+    if (f.outflow != 0) {
+      f.x /= f.outflow;
+      f.y /= f.outflow;
+    } else {
+      ; // one may put code which move unused facities to facilities with high usage here
+    }
   }
 }
 
@@ -53,6 +59,7 @@ void Solver::optimize_x ()
   }
   for (Facility &f : _I) {
     f.outflow = 0;
+    f.pi = 0;
   }
   ssp_algorithm();
 }
@@ -86,7 +93,6 @@ void Solver::print()
  * consider lenght 2 paths which have the Customer as inner Vertex as Edges.
  */
 void Solver::ssp_algorithm () {
-  ssp_init();
   flow_t pushed = 0;
   while (pushed < _D.size()) {
     dij_init();
@@ -95,37 +101,21 @@ void Solver::ssp_algorithm () {
     for (Facility &f : _I) {
       f.pi += f.dij_dist;
     }
-#if 0
-    print_tree();
-    std::cout << "u is " << _u << std::endl;
-    flow_t p = ssp_push();
-    pushed += p;
-    std::cout << "ssp_pushed " << p << " newly, " << pushed << " total of " << _D.size() << std::endl;
-    if (p == 0) return;
-#else
-    pushed += ssp_push();
+    pushed += increase_flow();
+#ifdef PRINT_ADDITIONAL_INFORMATION
+    std::cout << "currently pushed\t" << pushed << "\tof\t" << _D.size() << "\tneccessary." << std::endl;
 #endif
   }
 }
 
-void Solver::ssp_init () {
-  for (Facility &f : _I) {
-    f.outflow = 0;
-    f.pi = 0;
-  }
-  for (Customer &c : _D) {
-    c.flow_parent = nullptr;
-  }
-}
-
-Solver::flow_t Solver::ssp_push () {
+Solver::flow_t Solver::increase_flow () {
   flow_t retval = 0;
   for (Facility &f : _I) {
     for (Customer *c : f.dij_children) {
       if (f.outflow == _u) {
         break;
       }
-      if (try_push(c)) {
+      if (search_sink(c)) {
         c->flow_parent = &f;
         ++f.outflow;
         ++retval;
@@ -135,10 +125,10 @@ Solver::flow_t Solver::ssp_push () {
   return retval;
 }
 
-bool Solver::try_push (Customer *c) {
+bool Solver::search_sink (Customer *c) {
   if (c->flow_parent) {
     for (Customer *c2 : c->flow_parent->dij_children) {
-      if (try_push(c2)) {
+      if (search_sink(c2)) {
         c2->flow_parent = c->flow_parent;
         return true;
       }
@@ -167,10 +157,6 @@ void Solver::dij_init () {
   }
 }
 
-void breakfunction () {
-  
-}
-
 void Solver::dij_algorithm () {
   Facility *f;
   while (f = _heap.extract_min(), f) {
@@ -183,9 +169,6 @@ void Solver::dij_algorithm () {
       if (c.flow_parent) {
         Facility *f2 = c.flow_parent;
         dist = dist - Point::dist(c, *f2) - f2->pi;
-        if (dist < 0) {
-          breakfunction();
-        }
         if (dist < f2->dij_dist) {
           f2->dij_dist = dist;
           f2->dij_parent = &c;
