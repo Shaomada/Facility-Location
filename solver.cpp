@@ -204,31 +204,39 @@ bool Solver::has_path(Solver::Facility* f)
 }
 
 void Solver::dij_algorithm () {
+  std::vector<Customer *> not_ignored_customers;
+  for (Customer &c : _D) {
+    // we can ignore Customers through which we would shortcut if we know the shortest way to the head of the shortcut
+    if (!c.flow_parent || c.flow_parent->dij_dist != 0) {
+      not_ignored_customers.push_back(c);
+    }
+  }
   Facility *f;
   while (f = _heap.extract_min(), f) {
     f->heap_node = nullptr;
-    for (Customer &c : _D) {
-      if (c.flow_parent == f) {
+    for (Customer *c : not_ignored_customers) {
+      if (c->flow_parent == f) {
         continue;
       }
-      dist_t dist = f->dij_dist + f->pi + Point::dist(*f, c);
-      if (dist < 0) std::cout << "What\n";
-      if (c.flow_parent) {
-        Facility *f2 = c.flow_parent;
-        dist = dist - Point::dist(c, *f2) - f2->pi;
+      dist_t dist = f->dij_dist + f->pi + Point::dist(*f, *c);
+      if (c->flow_parent) {
+        // In this case we shortcut. Append the unique outgoing egdg
+        Facility *f2 = c->flow_parent;
+        dist = dist - Point::dist(*c, *f2) - f2->pi;
         if (dist < f2->dij_dist) {
           f2->dij_dist = dist;
-          f2->dij_parent = &c;
-          c.dij_parent = f;
+          f2->dij_parent = c;
+          c->dij_parent = f;
           if (f2->heap_node) {
             _heap.decrease(f2->heap_node);
           } else {
             f2->heap_node = _heap.add(f2);
           }
         }
-      } else if (dist < c.dij_dist) {
-        c.dij_dist = dist;
-        c.dij_parent = f;
+      } else if (dist < c->dij_dist) {
+        // note we do not need to propagate from here as there are no outgoing edges
+        c->dij_dist = dist;
+        c->dij_parent = f;
       }
     }
   }
