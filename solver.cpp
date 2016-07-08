@@ -124,6 +124,7 @@ void Solver::ssp_algorithm () {
     }
 #endif
   }
+  _heap.free_zeros();
 }
 
 void Solver::increase_flow (std::vector<Customer *> &unsupplied) {

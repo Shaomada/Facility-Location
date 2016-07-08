@@ -11,6 +11,7 @@ public:
   Node *add (T *content);
   void decrease (Node *n);
   T *extract_min();
+  void free_zeros();
 private:
   /// helper for iterating along the path in decrease
   void iter(Node *n);
@@ -19,6 +20,14 @@ private:
   /// saves Nodes with minimal possbile key in an extra data stucture
   std::vector<Node *> zeros;
 };
+
+template <typename T>
+void Heap<T>::free_zeros() {
+  while (zeros.size() > 0) {
+    delete zeros.back();
+    zeros.pop_back();
+  }
+}
 
 template <typename T>
 class Heap<T>::Node {
