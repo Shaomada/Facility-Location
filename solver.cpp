@@ -208,7 +208,7 @@ void Solver::dij_algorithm () {
   for (Customer &c : _D) {
     // we can ignore Customers through which we would shortcut if we know the shortest way to the head of the shortcut
     if (!c.flow_parent || c.flow_parent->dij_dist != 0) {
-      not_ignored_customers.push_back(c);
+      not_ignored_customers.push_back(&c);
     }
   }
   Facility *f;

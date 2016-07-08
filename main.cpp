@@ -5,6 +5,16 @@
 #include <cmath>
 #include <cstring>
 
+double max_dist(const std::vector<Solver::Point> &D) {
+  double retval = 0;
+  for (std::vector<Solver::Point>::const_iterator it = D.begin(); it != D.end(); ++it) {
+    for (std::vector<Solver::Point>::const_iterator jt = it; ++jt != D.end();) {
+      retval = std::max(retval, Solver::Point::dist(*it, *jt));
+    }
+  }
+  return retval;
+}
+
 int main ( int argc, char **argv ) {
   if (argc  == 1) {
     std::cout << "Usage: " << argv[0] << " <Instanzdateiname> {-f <int>} {-u <int>} {-k <int>} ." << std::endl;
@@ -35,7 +45,7 @@ int main ( int argc, char **argv ) {
   if (r < argc && strcmp(argv[r], "-f") == 0) {
     f = atof(argv[++r,r++]);
   } else {
-    f = 0;
+    f = 2*max_dist (D);
     std::cout << "f automatically chosen to be " << f << std::endl;    
   }
   unsigned u;

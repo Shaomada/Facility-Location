@@ -12,9 +12,11 @@ public:
   void decrease (Node *n);
   T *extract_min();
 private:
+  /// helper for iterating along the path in decrease
   void iter(Node *n);
   void plant(Node *n);
   std::vector<Node *> roots;
+  /// saves Nodes with minimal possbile key in an extra data stucture
   std::vector<Node *> zeros;
 };
 
