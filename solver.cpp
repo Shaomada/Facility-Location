@@ -24,7 +24,7 @@ Solver::Solver(flow_t u, const std::vector< Point >& D, const std::vector< Point
 }
 
 void Solver::solve () {
-  dist_t old_cost = _cost;
+  dist_t old_cost;
   do {
     old_cost = _cost;
     optimize_x();
