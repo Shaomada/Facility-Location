@@ -127,43 +127,56 @@ void Solver::ssp_algorithm () {
     }
 #endif
   }
-  _heap.free_zeros();
 }
 
 void Solver::increase_flow (std::vector<Customer *> &unsupplied) {
+
+  // tries to find an augmenting path to c in the rest of current dij_tree.
+  auto try_supply = [&] (Customer *c) -> bool {
+    // avoid recursion by using
+    std::vector<Customer *> stack;
+    stack.push_back(c);
+    bool retval = false;
+
+    while (!stack.empty()) {
+      c = stack.back();
+      Facility *f = c->dij_parent; // Note: f != nullptr by kind of Customers we push onto the stack.
+      if (f->outflow < _u) {
+	// found a way to supply the original c
+	retval = true;
+	f->outflow++;
+	c->flow_parent = f;
+	stack.pop_back();
+	// also destruct dij_tree as the edge will be no longer in the residual Graph
+	c->dij_parent = nullptr;
+      } else if (f->dij_parent && f->dij_parent->dij_parent) {
+	// can continue "recursion".
+	stack.push_back(f->dij_parent);
+      } else if (retval) {
+	// have allready done recursion and found an augmenting path
+	c->flow_parent = f;
+	stack.pop_back();
+	// also destruct dij_tree as edges will be no longer in the residual Graph
+	f->dij_parent = nullptr;
+	c->dij_parent = nullptr;
+      } else {
+	// can't find augmenting path. May destruct parts of dij_tree no longer connected to source.
+	f->dij_parent = nullptr;
+	c->dij_parent = nullptr;
+	stack.pop_back();
+      }
+    }
+
+    return retval;
+  };
+
   for (flow_t i = 0; i < unsupplied.size();) {
-    if (supply(unsupplied.at(i))) {
+    if (try_supply (unsupplied.at(i))) {
       std::swap (unsupplied.at(i), unsupplied.back());
       unsupplied.pop_back();
     } else {
       i++;
     }
-  }
-}
-
-bool Solver::supply (Customer *c) {
-  Facility *f = c->dij_parent;
-  c->dij_parent = nullptr;
-  if (f->outflow < _u) {
-    c->flow_parent = f;
-    c->flow_parent->outflow++;
-    return true;
-  } else if (f->dij_parent && supply(f->dij_parent)) {
-    c->flow_parent = f;
-    f->dij_parent = nullptr;
-    return true;
-  } else {
-    f->dij_parent = nullptr;
-    return false;
-  }
-}
-
-void Solver::discard_dij_tree () {
-  for (Customer &c : _D) {
-    c.dij_parent = nullptr;
-  }
-  for (Facility &f : _I) {
-    f.dij_parent = nullptr;
   }
 }
 

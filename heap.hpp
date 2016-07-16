@@ -15,23 +15,16 @@ public:
   Node *add (T *content);
   void decrease (Node *n);
   T *extract_min();
-  void free_zeros();
 private:
   /// helper for iterating along the path in decrease
   void iter(Node *n);
+  /// plant routine for fibbonacciheaps
   void plant(Node *n);
+  /// all roots stored at their size
   std::vector<Node *> roots;
   /// saves Nodes with minimal possbile key in an extra data stucture
   std::vector<Node *> zeros;
 };
-
-template <typename T>
-void Heap<T>::free_zeros() {
-  while (zeros.size() > 0) {
-    delete zeros.back();
-    zeros.pop_back();
-  }
-}
 
 template <typename T>
 class Heap<T>::Node {
@@ -43,7 +36,7 @@ private:
   /// removes the Edge from parent to this
   void pop();
   bool operator<(const Node &other) { return *content < *other.content; }
-   
+
   T *content;
   bool phi;
   /// number of children

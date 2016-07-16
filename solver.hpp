@@ -24,40 +24,31 @@ private:
 
   /// finds the optimal Facility locations for current assignment (Barycenters)
   void optimize_I ();
-  
+
   /// finds the optimal assignment for the current Facility locations (MaxFlow/SSP)
   void optimize_x ();
-  
+
   /// computes the cost of the current assignment
   void compute_cost ();
-  
+
   // prints the current assignment
   void print ();
-  
+
   /// Successive Shortest Path Algorithm Implementation
   void ssp_algorithm ();
-  
-  /**
-   * Increases the current flow along paths in the dij_tree by as much as possible.
-   * Returns increase in flow.
-   */
+
+  /// Increases the current flow along paths in the dij_tree by as much as possible. Updates \param unsupplied.
   void increase_flow (std::vector<Customer *> &unsupplied);
-  
-  /// tries to supply c through the dij_tree, deleting the edge considered from the tree.
-  bool supply (Customer *c);
-  
-  /// Removes all leftover edges of the dij_tree.
-  void discard_dij_tree ();
-  
+
   /// initialises keeping the parts of the last dij_tree which still exist.
   void dij_init (std::vector<Customer *> &unsupplied);
-  
+
   /// returns true if there if f can still be reached from source using the rest of the dij_tree.
   bool has_path(Facility *f);
-  
+
   /// Runs dijkstra on a minor of the residual Graph, which contains all the relevant information.
   void dij_algorithm ();
-  
+
   const flow_t _u;
   std::vector<Customer> _D;
   std::vector<Facility> _I;
@@ -77,7 +68,7 @@ struct Solver::Point
 
 struct Solver::Customer : public Point {
   inline Customer(Point p)
-    : Point(p.x, p.y) { } 
+    : Point(p.x, p.y) { }
   dist_t dij_dist;
   Facility *dij_parent;
   /// represents the incoming Edge

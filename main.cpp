@@ -46,7 +46,7 @@ int main ( int argc, char **argv ) {
     f = atof(argv[++r,r++]);
   } else {
     f = 2*max_dist (D);
-    std::cout << "f automatically chosen to be " << f << std::endl;    
+    std::cout << "f automatically chosen to be " << f << std::endl;
   }
   unsigned u;
   if (r < argc && strcmp(argv[r], "-u") == 0) {
