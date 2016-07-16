@@ -43,9 +43,6 @@ private:
   /// initialises keeping the parts of the last dij_tree which still exist.
   void dij_init (std::vector<Customer *> &unsupplied);
 
-  /// returns true if there if f can still be reached from source using the rest of the dij_tree.
-  bool has_path(Facility *f);
-
   /// Runs dijkstra on a minor of the residual Graph, which contains all the relevant information.
   void dij_algorithm ();
 

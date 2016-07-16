@@ -30,9 +30,11 @@ void Solver::solve () {
     optimize_x();
     optimize_I();
     compute_cost();
+
 #ifdef PRINT_ADDITIONAL_INFORMATION
     std::cout << "cost improved to\t" << _cost << "\tfrom\t" << old_cost << std::endl;
 #endif
+
   } while (old_cost - _cost > 1e-10 * old_cost || old_cost == std::numeric_limits<double>::infinity());
   print();
 }
@@ -51,7 +53,10 @@ void Solver::optimize_I () {
       f.x /= f.outflow;
       f.y /= f.outflow;
     } else {
-      ; // one may put code which move unused facities to facilities with high usage here
+      /* one may put code which moves unused facities to increase
+       * quality of results for large values of _u*_I.size().
+       * Currently for such instances sometimes facilites are unused.
+       */
     }
   }
 }
@@ -189,27 +194,54 @@ void Solver::dij_init(std::vector<Customer *> &unsupplied)
     f.dij_dist = std::numeric_limits<double>::infinity();
     f.heap_node = nullptr;
   }
-  // propagate all Facilites reachable from source using only Edge which we know have cost 0.
-  for (Facility &f : _I) {
-    if (has_path(&f)) {
-      f.dij_dist = 0;
-      f.heap_node = _heap.add(&f);
-    }
-  }
-}
 
-bool Solver::has_path(Solver::Facility* f)
-{
-  if (f->dij_dist == 0) {
-    return true;
-  } else if (f->outflow < _u) {
-    return true;
-  } else if (!f->dij_parent || !f->dij_parent->dij_parent) {
-    return false;
-  } else if (has_path(f->dij_parent->dij_parent)) {
-    return true;
-  } else {
-    return false;
+  /*
+   * Tries to backtrack from f to the source.
+   * Adds all facilities to heap on success.
+   * Removes all Edges of last dij_tree considered on failure.
+   */
+  auto backtrack = [&] (Facility *f) -> void {
+    // avoid recursion
+    std::vector<Facility *> stack;
+    stack.push_back(f);
+    bool retval = false;
+
+    while (!stack.empty()) {
+      f = stack.back();
+      if (f->heap_node) {
+        // f was allready marked as connected to source
+        retval = true;
+        stack.pop_back();
+      } else if (retval) {
+        // we have found a connection to source and f is not marked connected
+        f->dij_dist = 0;
+        f->heap_node = _heap.add(f);
+        stack.pop_back();
+      } else if (f->outflow < _u) {
+        // f is connected to source
+        retval = true;
+        // we don't call stack.pop_back here. This is intentional, we want to repeat the loop with retval true.
+      } else if (f->dij_parent && f->dij_parent->dij_parent) {
+        Facility *f2 = f->dij_parent->dij_parent;
+        if (f2->heap_node || f2->dij_parent || f->outflow < _u) {
+          // we have not allready recursivly visited f2 from f
+          stack.push_back(f2);
+        } else {
+          // we have allready recursivly visited f2 from f. Not connected to source
+          f->dij_parent->dij_parent = nullptr;
+          f->dij_parent = nullptr;
+          stack.pop_back();
+        }
+      } else {
+        // we cant backtrack further and have found no connection
+        f->dij_parent = nullptr;
+        stack.pop_back();
+      }
+    }
+  };
+
+  for (Facility &f : _I) {
+    backtrack(&f);
   }
 }
 
