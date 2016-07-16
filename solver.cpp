@@ -60,8 +60,10 @@ void Solver::optimize_x ()
 {
   for (Customer &c : _D) {
     c.flow_parent = nullptr;
+    c.dij_parent = nullptr;
   }
   for (Facility &f : _I) {
+    f.dij_parent = nullptr;
     f.outflow = 0;
     f.pi = 0;
   }
@@ -91,30 +93,31 @@ void Solver::print()
 /*
  * The source isn't explictly part of the graph. We will store flow at the Head of an Edge,
  * for Customers in the Facility *flow_parent, as they can only have inflow 0 or 1,
- * for Facilitys in flow_t outflow (=inflow)
+ * for Facilitys in flow_t outflow (=inflow).
  * Customer will not be added to the Heap if they have outdegree 0 in the residual Graph,
  * and not be consider Vertices of the Graph at all if they have outdegree 1, we instead
  * consider lenght 2 paths which have the Customer as inner Vertex as Edges.
  */
 void Solver::ssp_algorithm () {
 #ifdef PRINT_ADDITIONAL_INFORMATION
-  const int print_every_n_seconds = 3;
+  const int print_every_n_seconds = 10;
   static std::chrono::time_point<std::chrono::system_clock> last_print;
   last_print = std::chrono::system_clock::now();
 #endif
+
   std::vector<Customer *> unsupplied;
   for (Customer &c : _D) {
     unsupplied.push_back(&c);
   }
-  dij_init();
   while (!unsupplied.empty()) {
+    dij_init(unsupplied);
     dij_algorithm();
     for (Facility &f : _I) {
-      f.pi += f.dij_dist;
+      f.pi -= f.dij_dist;
       f.dij_dist = 0;
     }
     increase_flow(unsupplied);
-    dij_reinit(unsupplied);
+
 #ifdef PRINT_ADDITIONAL_INFORMATION
     std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
     int elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(now-last_print).count();
@@ -155,32 +158,25 @@ bool Solver::supply (Customer *c) {
   }
 }
 
-void Solver::dij_init () {
+void Solver::discard_dij_tree () {
   for (Customer &c : _D) {
-    c.dij_dist = std::numeric_limits<dist_t>::infinity();
     c.dij_parent = nullptr;
   }
   for (Facility &f : _I) {
     f.dij_parent = nullptr;
-    if (f.outflow < _u) {
-      f.dij_dist = 0;
-      f.heap_node = _heap.add(&f);
-    } else {
-      f.dij_dist = std::numeric_limits<dist_t>::infinity();
-      f.heap_node = nullptr;
-    }
   }
 }
 
-void Solver::dij_reinit(std::vector<Customer *> &unsupplied)
+void Solver::dij_init(std::vector<Customer *> &unsupplied)
 {
   for (Customer *c : unsupplied) {
     c->dij_dist = std::numeric_limits<double>::infinity();
   }
   for (Facility &f : _I) {
     f.dij_dist = std::numeric_limits<double>::infinity();
-    f.heap_node = nullptr; //?
+    f.heap_node = nullptr;
   }
+  // propagate all Facilites reachable from source using only Edge which we know have cost 0.
   for (Facility &f : _I) {
     if (has_path(&f)) {
       f.dij_dist = 0;
@@ -205,25 +201,32 @@ bool Solver::has_path(Solver::Facility* f)
 }
 
 void Solver::dij_algorithm () {
+  // Cost of the Edge from f to c.
+  auto edge_cost = [&] (Facility *f, Customer *c) -> double {
+    // Note c->pi is not stored as we may assume it allways is 0 (see below for why we may).
+    return Point::dist(*f, *c) - f->pi;
+  };
+
+  // we may ignore customers that have an flow_parent which allready has minimal dij_dist.
   std::vector<Customer *> not_ignored_customers;
   for (Customer &c : _D) {
-    // we can ignore Customers through which we would shortcut if we know the shortest way to the head of the shortcut
     if (!c.flow_parent || c.flow_parent->dij_dist != 0) {
       not_ignored_customers.push_back(&c);
     }
   }
+
   Facility *f;
   while (f = _heap.extract_min(), f) {
-    f->heap_node = nullptr;
     for (Customer *c : not_ignored_customers) {
       if (c->flow_parent == f) {
+	// In this case (c, f) is no edge in the residual Graph.
+	// Note we don't lose any relevant runtime here.
         continue;
-      }
-      dist_t dist = f->dij_dist + f->pi + Point::dist(*f, *c);
-      if (c->flow_parent) {
-        // In this case we shortcut. Append the unique outgoing egdg
+      } else if (c->flow_parent) {
+        // In this case we imagine c to be removed from the Graph as it has b-value 0 and only 1 outgoing Edge.
+	// Simply shortcut using the unique outgoing Edge to leave c.
         Facility *f2 = c->flow_parent;
-        dist = dist - Point::dist(*c, *f2) - f2->pi;
+	double dist = f->dij_dist + edge_cost (f, c) - edge_cost (f2, c);
         if (dist < f2->dij_dist) {
           f2->dij_dist = dist;
           f2->dij_parent = c;
@@ -234,10 +237,13 @@ void Solver::dij_algorithm () {
             f2->heap_node = _heap.add(f2);
           }
         }
-      } else if (dist < c->dij_dist) {
-        // note we do not need to propagate from here as there are no outgoing edges
-        c->dij_dist = dist;
-        c->dij_parent = f;
+      } else {
+	double dist = f->dij_dist + edge_cost(f, c);
+	if (dist < c->dij_dist) {
+	  c->dij_dist = dist;
+	  c->dij_parent = f;
+	  // No heap operations: Note c has no outgoing edges, so propagating it would be pointless.
+	}
       }
     }
   }

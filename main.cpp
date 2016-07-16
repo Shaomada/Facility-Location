@@ -76,10 +76,8 @@ int main ( int argc, char **argv ) {
     return 1;
   }
   std::vector<Solver::Point> I;
-  // guess Facility location to hopefully speed up algorithm
-  for (int i = 1; i < 2*k; i+=2) {
-    int j = (i*I.size())/(2*k);
-    I.push_back(D.at(j));
+  while (k --> 0) {
+    I.push_back(D.at(rand()%D.size()));
   }
   Solver s(u, D, I, f);
   s.solve();

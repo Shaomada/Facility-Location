@@ -46,21 +46,16 @@ private:
   /// tries to supply c through the dij_tree, deleting the edge considered from the tree.
   bool supply (Customer *c);
   
-  /// resets distances, dij_tree, heapnodes in preparation for the first dijkstra call.
-  void dij_init ();
+  /// Removes all leftover edges of the dij_tree.
+  void discard_dij_tree ();
   
   /// initialises keeping the parts of the last dij_tree which still exist.
-  void dij_reinit (std::vector<Customer *> &unsupplied);
+  void dij_init (std::vector<Customer *> &unsupplied);
   
   /// returns true if there if f can still be reached from source using the rest of the dij_tree.
   bool has_path(Facility *f);
   
-  /**
-   * Runs dijkstra on the residual Graph.
-   * Node is is sufficiant to only add Facilitys into the heap, as Customers either have
-   * outdegree 0, in which case we don't need to propagate them any further,
-   * or outdegree 1, in which case we can shortcut without increasing number of Edges.
-   */
+  /// Runs dijkstra on a minor of the residual Graph, which contains all the relevant information.
   void dij_algorithm ();
   
   const flow_t _u;

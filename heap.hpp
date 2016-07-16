@@ -3,6 +3,10 @@
 
 #include <vector>
 
+/**
+ * A standard fibbonacciheap with minimal keys as additional feature.
+ * Requires T::operator< to work.
+ */
 template <typename T>
 class Heap {
 public:
@@ -34,17 +38,25 @@ class Heap<T>::Node {
   friend class Heap<T>;
 private:
   Node (T *t);
+  /// adds an Edge from this to n
   void push (Node *n);
+  /// removes the Edge from parent to this
   void pop();
   bool operator<(const Node &other) { return *content < *other.content; }
    
   T *content;
   bool phi;
+  /// number of children
   unsigned size;
+  /// parent in the branching or nullptr if root
   Node *parent;
+  /// as the childs of this vertex are saved in a recursive list, we'll only need the first
   Node *first;
+  /// neighbours in the recursive list this is saved in, or meaningless if this is a root
+  ///@{
   Node *next;
   Node *prev;
+  ///@}
 };
 
 template <typename T>
